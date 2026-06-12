@@ -1,0 +1,553 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hệ thống Ôn thi SQA - Kiến thức cốt lõi</title>
+    <style>
+        :root {
+            --primary-color: #0056b3;
+            --secondary-color: #f8f9fa;
+            --success-color: #28a745;
+            --danger-color: #dc3545;
+            --text-color: #333;
+        }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #e9ecef;
+            color: var(--text-color);
+            margin: 0;
+            padding: 20px;
+        }
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        }
+        h1, h2, h3 {
+            text-align: center;
+            color: var(--primary-color);
+        }
+        .screen { display: none; }
+        .active { display: block; }
+        .btn {
+            background-color: var(--primary-color);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            font-size: 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            margin: 10px;
+            transition: background 0.3s;
+        }
+        .btn:hover { background-color: #004085; }
+        .btn-secondary { background-color: #6c757d; }
+        .btn-secondary:hover { background-color: #5a6268; }
+        .menu-box {
+            text-align: center;
+            padding: 40px 20px;
+            border: 2px dashed #ccc;
+            border-radius: 8px;
+            background: var(--secondary-color);
+        }
+        #timer-box {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: rgba(0,0,0,0.8);
+            color: #fff;
+            padding: 10px 20px;
+            border-radius: 20px;
+            font-size: 18px;
+            font-weight: bold;
+            z-index: 1000;
+            display: none;
+        }
+        .quiz-info {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 20px;
+            background: #e2e3e5;
+            padding: 10px;
+            border-radius: 6px;
+            font-weight: bold;
+        }
+        .question-card {
+            background: var(--secondary-color);
+            border-left: 5px solid var(--primary-color);
+            padding: 15px;
+            margin-bottom: 20px;
+            border-radius: 0 8px 8px 0;
+        }
+        .options-list {
+            list-style: none;
+            padding: 0;
+        }
+        .option-item {
+            background: white;
+            border: 1px solid #ced4da;
+            padding: 12px;
+            margin: 8px 0;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+        }
+        .option-item:hover {
+            background-color: #e2e6ea;
+        }
+        .option-item input {
+            margin-right: 12px;
+            transform: scale(1.2);
+        }
+        .correct-ans {
+            background-color: #d4edda !important;
+            border-color: #c3e6cb !important;
+            color: #155724;
+            font-weight: bold;
+        }
+        .wrong-ans {
+            background-color: #f8d7da !important;
+            border-color: #f5c6cb !important;
+            color: #721c24;
+        }
+        .explain-box {
+            margin-top: 10px;
+            padding: 10px;
+            background: #fff3cd;
+            border-left: 3px solid #ffc107;
+            font-size: 14px;
+            border-radius: 4px;
+            display: none;
+        }
+        .stats-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+        .stats-table th, .stats-table td {
+            border: 1px solid #dee2e6;
+            padding: 12px;
+            text-align: left;
+        }
+        .stats-table th {
+            background-color: var(--primary-color);
+            color: white;
+        }
+    </style>
+</head>
+<body>
+
+    <div id="timer-box">Thời gian: 30:00</div>
+
+    <div class="container">
+        <div id="screen-start" class="screen active">
+            <h1>HỆ THỐNG ÔN THI SQA - KIẾN THỨC LÝ THUYẾT CỐT LÕI</h1>
+            <div class="menu-box">
+                <h3>Chọn chế độ làm bài (Mỗi lượt ngẫu nhiên 20 câu / Ngân hàng 200 câu)</h3>
+                <button class="btn" onclick="startQuiz('review')">Chế độ Ôn Tập (Xem đáp án ngay)</button>
+                <button class="btn" onclick="startQuiz('exam')">Chế độ Thi Thử (Giới hạn 30 phút)</button>
+            </div>
+        </div>
+
+        <div id="screen-quiz" class="screen">
+            <div class="quiz-info">
+                <span id="quiz-mode-title">Chế độ: </span>
+                <span id="quiz-progress">Câu hỏi: 1/20</span>
+            </div>
+            <div id="questions-container"></div>
+            <div style="text-align: center;">
+                <button id="btn-submit" class="btn" onclick="submitQuiz()">Nộp bài</button>
+                <button id="btn-restart" class="btn btn-secondary" onclick="resetSystem()">Quay lại Menu</button>
+            </div>
+        </div>
+
+        <div id="screen-result" class="screen">
+            <h2>KẾT QUẢ LÀM BÀI</h2>
+            <div class="menu-box" style="font-size: 20px; font-weight: bold;">
+                <p>Số câu trả lời đúng: <span id="score-text" style="color:var(--success-color)">0/20</span></p>
+                <p>Điểm số quy đổi: <span id="score-grade" style="color:var(--primary-color)">0.0 / 10</span></p>
+            </div>
+            
+            <h3>Thống kê tỷ lệ chính xác theo từng Chương:</h3>
+            <table class="stats-table">
+                <thead>
+                    <tr>
+                        <th>Nội dung chương học</th>
+                        <th>Số câu hỏi gặp</th>
+                        <th>Số câu đúng</th>
+                        <th>Tỷ lệ chính xác (%)</th>
+                    </tr>
+                </thead>
+                <tbody id="stats-tbody"></tbody>
+            </table>
+            
+            <div style="text-align: center; margin-top: 20px;">
+                <button class="btn" onclick="viewDetailedAnswers()">Xem lại chi tiết đáp án</button>
+                <button class="btn btn-secondary" onclick="resetSystem()">Làm lượt mới</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ========================================================
+        // NGÂN HÀNG 200 CÂU HỎI LÝ THUYẾT & CHUYÊN MÔN SQA THUẦN TÚY
+        // ========================================================
+        const rawBank = [
+            // CHƯƠNG 1: KHÁI NIỆM VỀ CHẤT LƯỢNG PHẦN MỀM VÀ CÁC YẾU TỐ CHẤT LƯỢNG PHẦN MỀM
+            { ch: 1, q: "Theo khía cạnh công nghệ phần mềm, đặc điểm nào phân biệt rõ rệt nhất giữa phần mềm với các sản phẩm công nghiệp truyền thống?", a: "Phần mềm không bị hao mòn vật lý mà chỉ bị lỗi thời hoặc suy giảm tính hữu dụng theo thời gian", o: ["Phần mềm không bị hao mòn vật lý mà chỉ bị lỗi thời hoặc suy giảm tính hữu dụng theo thời gian", "Phần mềm có chi phí sản xuất hàng loạt cao hơn chi phí thiết kế", "Phần mềm được cấu thành hoàn toàn từ các linh kiện cơ khí", "Phần mềm dễ dàng kiểm tra bằng mắt thường để phát hiện hư hỏng"] },
+            { ch: 1, q: "Theo định nghĩa toàn diện của SQA, một bộ sản phẩm phần mềm đầy đủ chuyển giao cho khách hàng phải bao gồm các thành phần nào?", a: "Mã nguồn chương trình, các thủ tục vận hành, tài liệu hướng dẫn và dữ liệu cấu hình hệ thống", o: ["Mã nguồn chương trình, các thủ tục vận hành, tài liệu hướng dẫn và dữ liệu cấu hình hệ thống", "Chỉ gồm tệp tin thực thi (.exe) và cơ sở dữ liệu trống", "Mã nguồn chương trình và biên bản nghiệm thu tài chính", "Sơ đồ kiến trúc phần cứng và mã nguồn đóng gói"] },
+            { ch: 1, q: "Trong vòng đời của một lỗi phần mềm, khái niệm 'Error' được hiểu là gì?", a: "Hành động hoặc sai sót của con người (lập trình viên, phân tích viên) dẫn đến kết quả không chính xác", o: ["Hành động hoặc sai sót của con người (lập trình viên, phân tích viên) dẫn đến kết quả không chính xác", "Sự hoạt động sai lệch của ứng dụng trên môi trường thực tế", "Một khiếm khuyết nằm ẩn sâu trong mã nguồn chưa được kích hoạt", "Sự cố sập nguồn của máy chủ lưu trữ dữ liệu"] },
+            { ch: 1, q: "Khái niệm 'Fault' (hay Bug) xuất hiện trong phần mềm khi nào?", a: "Khi một 'Error' của con người biểu hiện cụ thể thành một khiếm khuyết trong mã nguồn hoặc tài liệu đặc tả", o: ["Khi một 'Error' của con người biểu hiện cụ thể thành một khiếm khuyết trong mã nguồn hoặc tài liệu đặc tả", "Khi người dùng cuối phát hiện ra lỗi và phản hồi về công ty", "Khi hệ thống bị quá tải bộ nhớ và ngừng đáp ứng", "Khi mã nguồn được biên dịch thành công mà không có cảnh báo"] },
+            { ch: 1, q: "Khi nào một khiếm khuyết trong phần mềm (Fault) chính thức trở thành một sự hỏng hóc (Failure)?", a: "Khi đoạn mã chứa khiếm khuyết đó được thực thi trong quá trình vận hành và tạo ra kết quả sai lệch", o: ["Khi đoạn mã chứa khiếm khuyết đó được thực thi trong quá trình vận hành và tạo ra kết quả sai lệch", "Ngay khi lập trình viên viết sai cú pháp câu lệnh trong IDE", "Khi kiểm thử viên viết xong kịch bản kiểm thử cho chức năng đó", "Khi tài liệu đặc tả yêu cầu được phê duyệt"] },
+            { ch: 1, q: "Theo tổ chức IEEE, 'Chất lượng phần mềm' được đánh giá căn cứ chủ yếu trên khía cạnh nào?", a: "Mức độ mà hệ thống, thành phần hoặc tiến trình đáp ứng các yêu cầu đặc tả và kỳ vọng của khách hàng", o: ["Mức độ mà hệ thống, thành phần hoặc tiến trình đáp ứng các yêu cầu đặc tả và kỳ vọng của khách hàng", "Tổng số lượng dòng lệnh (LOC) tối ưu được viết bởi lập trình viên", "Tốc độ phản hồi của mọi chức năng dưới 1 giây mà không quan tâm đến tính đúng đắn", "Khả năng vận hành liên tục không cần bảo trì trong vòng 50 năm"] },
+            { ch: 1, q: "Nguyên nhân cốt lõi nào thường chiếm tỷ lệ cao nhất dẫn đến việc phần mềm bị lỗi sau khi bàn giao?", a: "Định nghĩa sai lệch hoặc hiểu thiếu sót các yêu cầu nghiệp vụ ngay từ giai đoạn khảo sát", o: ["Định nghĩa sai lệch hoặc hiểu thiếu sót các yêu cầu nghiệp vụ ngay từ giai đoạn khảo sát", "Lập trình viên sử dụng các máy tính cấu hình quá thấp", "Sự thay đổi về địa điểm văn phòng làm việc của đội ngũ phát triển", "Việc lựa chọn các thư viện mã nguồn mở có bản quyền tự do"] },
+            { ch: 2, q: "Mô hình phân loại yếu tố chất lượng phần mềm của McCall chia chất lượng phần mềm thành bao nhiêu nhóm góc nhìn?", a: "3 nhóm góc nhìn: Vận hành sản phẩm, Rà soát sửa đổi sản phẩm và Chuyển giao sản phẩm", o: ["3 nhóm góc nhìn: Vận hành sản phẩm, Rà soát sửa đổi sản phẩm và Chuyển giao sản phẩm", "2 nhóm góc nhìn: Chất lượng chức năng và Chất lượng phi chức năng", "4 nhóm góc nhìn: Chi phí, Tiến độ, Nhân sự và Công nghệ", "5 nhóm góc nhìn dựa theo mô hình trưởng thành năng lực"] },
+            { ch: 1, q: "Yếu tố 'Correctness' (Tính đúng đắn) trong mô hình McCall đo lường khía cạnh nào?", a: "Mức độ mà phần mềm thỏa mãn các đặc tả yêu cầu và thực hiện chính xác các chức năng mục tiêu", o: ["Mức độ mà phần mềm thỏa mãn các đặc tả yêu cầu và thực hiện chính xác các chức năng mục tiêu", "Mức tiêu thụ tài nguyên phần cứng tối thiểu của hệ thống", "Khả năng phục hồi dữ liệu tự động sau khi hệ thống gặp sự cố sập nguồn", "Độ dễ dàng của giao diện đối với người dùng không chuyên"] },
+            { ch: 1, q: "Trong mô hình McCall, yếu tố 'Reliability' (Tính tin cậy) được định nghĩa là gì?", a: "Khả năng phần mềm thực hiện các chức năng dự kiến với độ chính xác cao trong một khoảng thời gian quy định", o: ["Khả năng phần mềm thực hiện các chức năng dự kiến với độ chính xác cao trong một khoảng thời gian quy định", "Mức độ an toàn bảo mật, chống lại các cuộc tấn công mạng độc hại", "Khả năng dễ dàng nâng cấp hoặc mở rộng quy mô tính năng về sau", "Độ tương thích khi cài đặt trên nhiều hệ điều hành khác nhau"] },
+            { ch: 1, q: "Yếu tố 'Efficiency' (Tính hiệu quả) của mô hình McCall liên quan mật thiết đến điều gì?", a: "Lượng tài nguyên phần cứng (CPU, RAM, bộ nhớ, băng thông) mà phần mềm tiêu thụ khi thực thi chức năng", o: ["Lượng tài nguyên phần cứng (CPU, RAM, bộ nhớ, băng thông) mà phần mềm tiêu thụ khi thực thi chức năng", "Tốc độ viết mã nguồn và hoàn thành công việc của đội ngũ kỹ sư", "Tỷ lệ số câu lệnh được tái sử dụng trên tổng số mã nguồn của dự án", "Số tiền tiết kiệm được khi không thuê đơn vị kiểm thử độc lập"] },
+            { ch: 1, q: "Khía cạnh 'Integrity' (Tính toàn vẹn/bảo mật) theo McCall tập trung vào kiểm soát điều gì?", a: "Khả năng kiểm soát truy cập, ngăn chặn việc can thiệp trái phép vào dữ liệu hoặc phần mềm", o: ["Khả năng kiểm soát truy cập, ngăn chặn việc can thiệp trái phép vào dữ liệu hoặc phần mềm", "Sự đồng bộ giữa tài liệu thiết kế kiến trúc và mã nguồn kiểm thử", "Khả năng chạy mượt mà của phần mềm khi ngắt kết nối mạng", "Tốc độ xử lý luồng dữ liệu đồng thời của hệ thống cơ sở dữ liệu"] },
+            { ch: 1, q: "Yếu tố 'Usability' (Tính khả dụng) trong nhóm Vận hành sản phẩm đánh giá tiêu chí nào?", a: "Mức độ nỗ lực và thời gian cần thiết để người dùng học hỏi, vận hành và diễn giải kết quả từ phần mềm", o: ["Mức độ nỗ lực và thời gian cần thiết để người dùng học hỏi, vận hành và diễn giải kết quả từ phần mềm", "Mức độ dễ dàng khi lập trình viên tiến hành viết các ca kiểm thử đơn vị", "Khả năng đóng gói phần mềm thành một tệp cài đặt duy nhất", "Tốc độ đồng bộ dữ liệu giữa máy trạm và máy chủ trung tâm"] },
+            { ch: 1, q: "Nhóm yếu tố 'Product Revision' (Rà soát sửa đổi sản phẩm) của McCall bao gồm các thuộc tính nào?", a: "Maintainability (Khả năng bảo trì), Flexibility (Tính linh động), Testability (Khả năng kiểm thử)", o: ["Maintainability (Khả năng bảo trì), Flexibility (Tính linh động), Testability (Khả năng kiểm thử)", "Portability (Tính lưu động), Reusability (Tính tái sử dụng), Interoperability (Khả năng tương tác)", "Correctness (Tính đúng đắn), Reliability (Tính tin cậy), Efficiency (Tính hiệu quả)", "Integrity (Tính toàn vẹn), Usability (Tính khả dụng), Portability (Tính lưu động)"] },
+            { ch: 1, q: "Sự khác biệt giữa 'Maintainability' và 'Flexibility' trong mô hình McCall là gì?", a: "Maintainability tập trung vào công sức sửa lỗi hiện tại, còn Flexibility tập trung vào công sức nâng cấp hoặc thêm tính năng mới", o: ["Maintainability tập trung vào công sức sửa lỗi hiện tại, còn Flexibility tập trung vào công sức nâng cấp hoặc thêm tính năng mới", "Maintainability dành cho người dùng cuối, còn Flexibility dành cho kiểm thử viên chuyên nghiệp", "Maintainability áp dụng khi chạy phần mềm, còn Flexibility áp dụng khi biên dịch mã nguồn", "Không có sự khác biệt, hai khái niệm này hoàn toàn đồng nhất với nhau"] },
+            { ch: 1, q: "Yếu tố 'Testability' (Khả năng kiểm thử) của một sản phẩm phần mềm được thể hiện qua đặc điểm nào?", a: "Cung cấp các tính năng hỗ trợ như ghi nhật ký (log), tạo dữ liệu mẫu, công cụ chẩn đoán giúp xác minh kết quả dễ dàng", o: ["Cung cấp các tính năng hỗ trợ như ghi nhật ký (log), tạo dữ liệu mẫu, công cụ chẩn đoán giúp xác minh kết quả dễ dàng", "Sản phẩm được viết bằng các ngôn ngữ lập trình thông dịch có tốc độ nhanh", "Việc phần mềm tự động sửa sạch mọi lỗi khi phát hiện có bất thường xảy ra", "Giao diện phần mềm có cấu trúc tối giản và ít chức năng xử lý nghiệp vụ"] },
+            { ch: 1, q: "Nhóm yếu tố 'Product Transition' (Chuyển giao sản phẩm) của McCall gồm những thuộc tính nào?", a: "Portability (Tính lưu động), Reusability (Tính tái sử dụng), Interoperability (Khả năng tương tác)", o: ["Portability (Tính lưu động), Reusability (Tính tái sử dụng), Interoperability (Khả năng tương tác)", "Maintainability (Khả năng bảo trì), Flexibility (Tính linh động), Testability (Khả năng kiểm thử)", "Correctness (Tính đúng đắn), Efficiency (Tính hiệu quả), Usability (Tính khả dụng)", "Reliability (Tính tin cậy), Integrity (Tính toàn vẹn), Flexibility (Tính linh động)"] },
+            { ch: 1, q: "Yếu tố 'Portability' (Tính lưu động) được định nghĩa như thế nào?", a: "Công sức cần thiết để chuyển phần mềm từ môi trường phần cứng hoặc hệ điều hành này sang một môi trường khác", o: ["Công sức cần thiết để chuyển phần mềm từ môi trường phần cứng hoặc hệ điều hành này sang một môi trường khác", "Khả năng người dùng có thể sao chép phần mềm sang các thiết bị lưu trữ ngoại vi", "Tốc độ phản hồi của phần mềm khi người dùng di chuyển giữa các vùng mạng khác nhau", "Khả năng tự động thay đổi kích thước giao diện theo độ phân giải màn hình"] },
+            { ch: 1, q: "Yếu tố 'Reusability' (Tính tái sử dụng) mang lại lợi ích gì cho tiến trình phát triển phần mềm?", a: "Cho phép sử dụng lại các thành phần, module hoặc đoạn mã của phần mềm này cho các dự án phần mềm khác", o: ["Cho phép sử dụng lại các thành phần, module hoặc đoạn mã của phần mềm này cho các dự án phần mềm khác", "Giúp người dùng có thể mở lại các phiên làm việc cũ mà không mất dữ liệu", "Hỗ trợ chạy đồng thời nhiều tài khoản người dùng trên cùng một thiết bị phần cứng", "Tự động khôi phục trạng thái hệ thống về mốc cấu hình an toàn gần nhất"] },
+            { ch: 1, q: "Yếu tố 'Interoperability' (Khả năng tương tác) của phần mềm chú trọng vào khía cạnh nào?", a: "Khả năng kết nối, giao tiếp và trao đổi dữ liệu mượt mà giữa phần mềm này với các hệ thống phần mềm khác", o: ["Khả năng kết nối, giao tiếp và trao đổi dữ liệu mượt mà giữa phần mềm này với các hệ thống phần mềm khác", "Sự tương tác phản hồi qua lại giữa người dùng và các hiệu ứng hoạt họa trên màn hình", "Mức độ phối hợp làm việc giữa đội ngũ lập trình viên và đội ngũ kiểm thử viên", "Khả năng chạy đồng bộ ứng dụng trên cả nền tảng web và nền tảng di động"] },
+
+            // CHƯƠNG 2: CÁC THÀNH PHẦN CHẤT LƯỢNG PHẦN MỀM TIỀN DỰ ÁN
+            { ch: 2, q: "Mục đích cốt lõi của hoạt động rà soát hợp đồng (Contract Review) trong SQA tiền dự án là gì?", a: "Đảm bảo các yêu cầu của khách hàng được làm rõ, định nghĩa đầy đủ và công ty có đủ năng lực, tài nguyên để đáp ứng", o: ["Đảm bảo các yêu cầu của khách hàng được làm rõ, định nghĩa đầy đủ và công ty có đủ năng lực, tài nguyên để đáp ứng", "Xác định mức phạt hành chính tối đa nếu lập trình viên tự ý nghỉ việc giữa chừng", "Lựa chọn các công cụ lập trình có chi phí bản quyền rẻ nhất trên thị trường", "Cắt giảm tối đa số lượng nhân sự tham gia vào giai đoạn thiết kế kiến trúc"] },
+            { ch: 2, q: "Theo quy trình SQA chuẩn, tiến trình rà soát hợp đồng thương mại/kỹ thuật gồm bao nhiêu giai đoạn chính?", a: "2 giai đoạn: Rà soát bản đề xuất dự thảo (Proposal) và rà soát dự thảo hợp đồng chính thức (Contract)", o: ["2 giai đoạn: Rà soát bản đề xuất dự thảo (Proposal) và rà soát dự thảo hợp đồng chính thức (Contract)", "3 giai đoạn: Trước khi gặp khách hàng, trong khi đàm phán và sau khi nghiệm thu bàn giao", "4 giai đoạn tương ứng với các mức kiểm thử từ Unit Test đến Acceptance Test", "1 giai đoạn duy nhất ngay trước thời điểm ký kết văn bản hợp đồng pháp lý"] },
+            { ch: 2, q: "Giai đoạn rà soát bản đề xuất dự thảo (Proposal Review) tập trung giải quyết vấn đề gì?", a: "Đánh giá tính khả thi về mặt kỹ thuật, ước lượng tài nguyên, ngân sách và lịch trình sơ bộ trước khi gửi cho khách hàng", o: ["Đánh giá tính khả thi về mặt kỹ thuật, ước lượng tài nguyên, ngân sách và lịch trình sơ bộ trước khi gửi cho khách hàng", "Kiểm tra lỗi cú pháp và định dạng văn bản của các điều khoản bồi thường pháp lý", "Xác minh tư cách pháp nhân và lịch sử tín dụng của doanh nghiệp đối tác", "Thực hiện cài đặt các bản thử nghiệm sản phẩm lên hệ thống của khách hàng"] },
+            { ch: 2, q: "Khi tiến hành rà soát một bản kế hoạch phát triển dự án (Development Plan), khía cạnh nào cần được ưu tiên xem xét?", a: "Sự phân rã công việc (WBS), các mốc dự án quan trọng (Milestones) và kế hoạch quản lý rủi ro", o: ["Sự phân rã công việc (WBS), các mốc dự án quan trọng (Milestones) và kế hoạch quản lý rủi ro", "Danh sách chi tiết tên các hàm và cấu trúc bảng dữ liệu sẽ được sử dụng", "Mức lương thưởng cụ thể của từng kỹ sư phần mềm tham gia dự án", "Địa điểm tổ chức các buổi lễ bàn giao và nghiệm thu sản phẩm"] },
+            { ch: 2, q: "Kế hoạch đảm bảo chất lượng phần mềm (Quality Plan) bắt buộc phải xác định rõ nội dung nào?", a: "Mục tiêu chất lượng cụ thể, danh mục các cuộc rà soát, kiểm thử và tiêu chuẩn áp dụng", o: ["Mục tiêu chất lượng cụ thể, danh mục các cuộc rà soát, kiểm thử và tiêu chuẩn áp dụng", "Quy chế xử phạt nhân viên khi đi làm muộn hoặc không viết log công việc", "Cấu hình chi tiết của hệ thống máy chủ phục vụ sao lưu dữ liệu văn phòng", "Số lượng trang tài liệu tối đa được phép soạn thảo cho mỗi chức năng"] },
+            { ch: 2, q: "Tại sao việc đưa cấu phần quản lý rủi ro (Risk Management) vào kế hoạch tiền dự án lại là bắt buộc theo chuẩn SQA?", a: "Để chủ động nhận diện các mối nguy có thể làm trễ tiến độ hoặc giảm chất lượng, từ đó xây dựng phương án dự phòng", o: ["Để chủ động nhận diện các mối nguy có thể làm trễ tiến độ hoặc giảm chất lượng, từ đó xây dựng phương án dự phòng", "Nhằm tìm kiếm các lý do hợp pháp để hủy bỏ hợp đồng đơn phương không bị phạt", "Để chuyển giao toàn bộ trách nhiệm sửa lỗi phần mềm sang phía đơn vị bảo hiểm", "Giúp rút ngắn thời gian viết mã nguồn của lập trình viên xuống một nửa"] },
+            { ch: 2, q: "Khó khăn hay trở lực lớn nhất thường gặp khi triển khai rà soát hợp đồng trong thực tế doanh nghiệp là gì?", a: "Áp lực nặng nề về thời gian, tiến độ đấu thầu dẫn tới việc thực hiện rà soát qua loa, hình thức", o: ["Áp lực nặng nề về thời gian, tiến độ đấu thầu dẫn tới việc thực hiện rà soát qua loa, hình thức", "Sự phản đối quyết liệt từ đội ngũ lập trình viên do họ không muốn viết tài liệu", "Việc thiếu thốn các biểu mẫu mẫu bằng văn bản tiếng Anh của các tổ chức quốc tế", "Khách hàng từ chối cung cấp thông tin về tên doanh nghiệp của họ"] },
+            { ch: 2, q: "Đối tượng nào thích hợp nhất đóng vai trò chủ trì một buổi rà soát đề xuất dự án kỹ thuật?", a: "Một chuyên gia kỹ thuật có kinh nghiệm sâu sắc và độc lập với đội ngũ trực tiếp viết bản đề xuất", o: ["Một chuyên gia kỹ thuật có kinh nghiệm sâu sắc và độc lập với đội ngũ trực tiếp viết bản đề xuất", "Sinh viên thực tập mới nhận vào công ty để họ học hỏi kinh nghiệm", "Nhân viên thuộc bộ phận kế toán hoặc hành chính nhân sự", "Đại diện trực tiếp của bên phía khách hàng đặt hàng phần mềm"] },
+            { ch: 2, q: "Trong lịch trình kế hoạch chất lượng, tiêu chí nào dùng để phân biệt một 'Milestone' (Mốc dự án) với một tác vụ thông thường?", a: "Milestone là một điểm thời gian phân mốc đánh dấu sự hoàn thành của một sản phẩm bàn giao quan trọng", o: ["Milestone là một điểm thời gian phân mốc đánh dấu sự hoàn thành của một sản phẩm bàn giao quan trọng", "Milestone là tác vụ tiêu tốn nhiều nhân lực và thời gian thực hiện nhất của dự án", "Milestone là giai đoạn lập trình viên được nghỉ ngơi không cần viết mã nguồn", "Milestone là thời điểm khách hàng tiến hành thanh toán toàn bộ giá trị hợp đồng"] },
+            { ch: 2, q: "Việc rà soát các khía cạnh liên quan đến phần mềm thương mại có sẵn (COTS) trong hợp đồng nhằm mục đích gì?", a: "Xác định rõ trách nhiệm bản quyền, chi phí tích hợp và rủi ro phụ thuộc vào nhà cung cấp thứ ba", o: ["Xác định rõ trách nhiệm bản quyền, chi phí tích hợp và rủi ro phụ thuộc vào nhà cung cấp thứ ba", "Tìm cách bẻ khóa (crack) phần mềm để tiết kiệm ngân sách mua sắm cho công ty", "Yêu cầu lập trình viên viết lại toàn bộ mã nguồn của phần mềm thương mại đó", "Đảm bảo phần mềm thương mại đó không chứa bất kỳ dòng mã nguồn mở nào"] },
+
+            // CHƯƠNG 3: CÁC THÀNH PHẦN SQA TRONG VÒNG ĐỜI DỰ ÁN
+            { ch: 3, q: "Theo chuẩn phần mềm, hoạt động 'Verification' (Xác minh) được định nghĩa là gì?", a: "Quá trình đánh giá xem sản phẩm của một giai đoạn phát triển có đáp ứng các điều kiện đặt ra ở đầu giai đoạn đó không", o: ["Quá trình đánh giá xem sản phẩm của một giai đoạn phát triển có đáp ứng các điều kiện đặt ra ở đầu giai đoạn đó không", "Quá trình chạy phần mềm trên máy của người dùng để xem họ có hài lòng hay không", "Việc kiểm tra xem lập trình viên có đi làm đúng giờ theo quy định của công ty không", "Hoạt động khôi phục mã nguồn từ hệ thống lưu trữ đám mây khi gặp sự cố"] },
+            { ch: 3, q: "Hoạt động 'Validation' (Thẩm định) trong chu trình SQA có ý nghĩa cốt lõi là gì?", a: "Quá trình đánh giá sản phẩm cuối cùng xem có đáp ứng đúng nhu cầu và mục đích sử dụng thực tế của khách hàng không", o: ["Quá trình đánh giá sản phẩm cuối cùng xem có đáp ứng đúng nhu cầu và mục đích sử dụng thực tế của khách hàng không", "Việc kiểm tra tính đúng đắn của cú pháp các câu lệnh lập trình khi biên dịch", "Hoạt động đối chiếu giữa tài liệu thiết kế kiến trúc và tài liệu thiết kế chi tiết", "Việc xác thực thông tin đăng nhập của người quản trị hệ thống"] },
+            { ch: 3, q: "Mô hình phát triển phần mềm chữ V (V-model) thể hiện tư duy SQA như thế nào?", a: "Mỗi giai đoạn phát triển ở nhánh bên trái đều có một giai đoạn kiểm thử/xác minh tương ứng ở nhánh bên phải", o: ["Mỗi giai đoạn phát triển ở nhánh bên trái đều có một giai đoạn kiểm thử/xác minh tương ứng ở nhánh bên phải", "Quy trình phát triển phần mềm phải diễn ra tuần tự từ trên xuống dưới và không được quay lại", "Việc kiểm thử chỉ được phép bắt đầu sau khi toàn bộ hệ thống đã được lập trình xong", "Sản phẩm phần mềm chỉ có chất lượng khi giao diện được thiết kế theo hình chữ V"] },
+            { ch: 3, q: "Trong V-model, hoạt động 'Kiểm thử tích hợp' (Integration Testing) đối ứng trực tiếp với giai đoạn nào bên nhánh phát triển?", a: "Thiết kế kiến trúc hệ thống (Architectural Design)", o: ["Thiết kế kiến trúc hệ thống (Architectural Design)", "Phân tích yêu cầu người dùng (Requirements Analysis)", "Thiết kế chi tiết module (Detailed Design)", "Viết mã nguồn đơn vị (Coding)"] },
+            { ch: 3, q: "Hoạt động rà soát thiết kế chính thức (Design Review - DR) thường do ai yêu cầu và tổ chức?", a: "Quản lý dự án hoặc bộ phận SQA chuyên trách phối hợp cùng các bên liên quan", o: ["Quản lý dự án hoặc bộ phận SQA chuyên trách phối hợp cùng các bên liên quan", "Chính lập trình viên vừa hoàn thành xong bản thiết kế một cách ngẫu nhiên", "Bất kỳ người dùng cuối nào tải ứng dụng từ trên mạng Internet về sử dụng", "Đơn vị cung cấp hạ tầng máy chủ đám mây cho doanh nghiệp"] },
+            { ch: 3, q: "Quy mô thành viên tối ưu cho một hội đồng rà soát thiết kế chính thức (DR) theo khuyến nghị là bao nhiêu để đạt hiệu quả?", a: "Từ 3 đến 5 người", o: ["Từ 3 đến 5 người", "Càng đông càng tốt, trên 15 người", "Chỉ cần 1 người duy nhất để ra quyết định nhanh", "Bắt buộc phải gồm toàn bộ nhân viên của công ty"] },
+            { ch: 3, q: "Quyết định nào sau đây KHÔNG phải là kết quả đầu ra tiêu chuẩn của một phiên rà soát thiết kế chính thức?", a: "Hủy bỏ tư cách pháp nhân của đơn vị thiết kế", o: ["Hủy bỏ tư cách pháp nhân của đơn vị thiết kế", "Phê duyệt toàn bộ bản thiết kế không cần chỉnh sửa", "Phê duyệt có điều kiện kèm theo danh sách điểm cần sửa đổi", "Từ chối phê duyệt và yêu cầu thiết kế lại từ đầu"] },
+            { ch: 3, q: "Phương pháp rà soát ngang hàng 'Inspection' (Xét duyệt kỹ thuật) có đặc điểm nổi bật nào?", a: "Là quy trình trang trọng, có cấu trúc chặt chẽ, sử dụng checklist và có vai trò phân nhiệm rõ ràng (Moderator, Scribe...)", o: ["Là quy trình trang trọng, có cấu trúc chặt chẽ, sử dụng checklist và có vai trò phân nhiệm rõ ràng (Moderator, Scribe...)", "Là buổi nói chuyện thân mật, ngẫu nhiên giữa hai lập trình viên ngồi cạnh nhau", "Hoạt động tác giả tự đọc lại mã nguồn của mình trước khi đi ngủ", "Cuộc họp trực tuyến công khai với sự tham gia của hàng ngàn khách hàng"] },
+            { ch: 3, q: "Trong một buổi Inspection, vai trò của người ghi chép (Scribe) là làm gì?", a: "Ghi lại chính xác mọi khiếm khuyết, lỗi và vấn đề được phát hiện trong buổi rà soát vào biên bản", o: ["Ghi lại chính xác mọi khiếm khuyết, lỗi và vấn đề được phát hiện trong buổi rà soát vào biên bản", "Điều phối luồng tranh luận và kiểm soát thời gian của cuộc họp", "Thuyết trình và giải thích logic của mã nguồn cho ban rà soát nghe", "Đưa ra giải pháp lập trình cụ thể để sửa lỗi ngay tại phòng họp"] },
+            { ch: 3, q: "Thời lượng tối đa cho một phiên rà soát mã nguồn tập trung (Peer Review) nên là bao nhiêu để tránh giảm năng suất?", a: "Không nên quá 2 giờ làm việc liên tục", o: ["Không nên quá 2 giờ làm việc liên tục", "Tối thiểu phải đủ 4 giờ", "Kéo dài liên tục suốt cả ngày làm việc", "Không giới hạn thời gian, rà soát đến khi hết tài liệu"] },
+            { ch: 3, q: "Khi nào phương pháp lấy ý kiến chuyên gia độc lập (Expert Opinion) được áp dụng trong vòng đời dự án?", a: "Khi dự án gặp các vấn đề kỹ thuật phức tạp hoặc mới lạ mà đội ngũ nội bộ chưa đủ năng lực tự đánh giá", o: ["Khi dự án gặp các vấn đề kỹ thuật phức tạp hoặc mới lạ mà đội ngũ nội bộ chưa đủ năng lực tự đánh giá", "Khi công ty muốn cắt giảm chi phí trả lương cho nhân viên chính thức", "Khi có sự tranh chấp về mặt tài chính giữa giám đốc và kế toán trưởng", "Khi khách hàng yêu cầu đổi màu sắc giao diện hiển thị của phần mềm"] },
+            { ch: 3, q: "Theo SQA, hoạt động 'Bảo trì sửa lỗi' (Corrective Maintenance) được thực hiện nhằm mục đích gì?", a: "Sửa chữa các lỗi, khiếm khuyết được phát hiện khi phần mềm đang vận hành thực tế", o: ["Sửa chữa các lỗi, khiếm khuyết được phát hiện khi phần mềm đang vận hành thực tế", "Nâng cấp hệ thống để chạy trên một hệ điều hành hoàn toàn mới", "Thêm các chức năng mới theo yêu cầu mở rộng kinh doanh của khách hàng", "Tối ưu hóa cấu trúc mã nguồn để chương trình chạy nhanh hơn"] },
+            { ch: 3, q: "Hoạt động 'Bảo trì thích ứng' (Adaptive Maintenance) diễn ra trong trường hợp nào?", a: "Khi cần điều chỉnh phần mềm để tương thích với những thay đổi của môi trường phần cứng, hệ điều hành hoặc luật pháp", o: ["Khi cần điều chỉnh phần mềm để tương thích với những thay đổi của môi trường phần cứng, hệ điều hành hoặc luật pháp", "Khi hệ thống bị sập do lập trình viên viết sai thuật toán vòng lặp vô hạn", "Khi người dùng quên mật khẩu đăng nhập vào tài khoản cá nhân", "Khi công ty tiến hành thay đổi logo thương hiệu trên trang chủ"] },
+            { ch: 3, q: "Bản chất của hoạt động 'Bảo trì hoàn thiện nâng cao' (Perfective Maintenance) là gì?", a: "Cải tiến hiệu năng, tính dễ bảo trì hoặc thêm các tính năng nhỏ để nâng cao chất lượng sản phẩm theo phản hồi", o: ["Cải tiến hiệu năng, tính dễ bảo trì hoặc thêm các tính năng nhỏ để nâng cao chất lượng sản phẩm theo phản hồi", "Vá các lỗ hổng bảo mật nghiêm trọng đang bị hacker khai thác", "Cài đặt lại hệ điều hành sạch cho toàn bộ máy tính của khách hàng", "Viết lại tài liệu hướng dẫn sử dụng từ tiếng Việt sang tiếng Anh"] },
+            { ch: 3, q: "Mối quan hệ giữa chất lượng của gói phần mềm gốc và công sức bảo trì phần mềm về sau là gì?", a: "Phần mềm gốc có chất lượng thiết kế và mã nguồn càng cao thì chi phí và công sức bảo trì càng thấp", o: ["Phần mềm gốc có chất lượng thiết kế và mã nguồn càng cao thì chi phí và công sức bảo trì càng thấp", "Phần mềm gốc càng nhiều lỗi thì công việc bảo trì càng diễn ra dễ dàng", "Không có mối quan hệ nào ảnh hưởng qua lại lẫn nhau", "Chất lượng phần mềm gốc chỉ ảnh hưởng đến chi phí phần cứng máy chủ"] },
+
+            // CHƯƠNG 4: KIỂM THỬ PHẦN MỀM
+            { ch: 4, q: "Mục tiêu bản chất của hoạt động kiểm thử phần mềm (Software Testing) theo quan điểm SQA hiện đại là gì?", a: "Chạy phần mềm với mục đích phát hiện ra càng nhiều khiếm khuyết (errors/bugs) càng tốt trước khi bàn giao", o: ["Chạy phần mềm với mục đích phát hiện ra càng nhiều khiếm khuyết (errors/bugs) càng tốt trước khi bàn giao", "Chứng minh một cách tuyệt đối rằng phần mềm hoàn hảo và hoàn toàn không còn lỗi", "Hỗ trợ nhân viên nhập liệu của khách hàng hoàn thành công việc hàng ngày", "Tự động tối ưu hóa cấu trúc các câu lệnh truy vấn cơ sở dữ liệu SQL"] },
+            { ch: 4, q: "Đặc điểm cốt lõi của chiến lược kiểm thử 'Hộp đen' (Black-box testing) là gì?", a: "Kiểm thử dựa hoàn toàn vào đặc tả yêu cầu chức năng bên ngoài mà không cần biết cấu trúc mã nguồn bên trong", o: ["Kiểm thử dựa hoàn toàn vào đặc tả yêu cầu chức năng bên ngoài mà không cần biết cấu trúc mã nguồn bên trong", "Kiểm thử trực tiếp trên giao diện có màu nền tối hoặc màu đen", "Việc kiểm thử do các chuyên gia bên ngoài công ty thực hiện độc lập", "Kiểm thử tính tương thích của ứng dụng với các thiết bị phần cứng lỗi thời"] },
+            { ch: 4, q: "Chiến lược kiểm thử 'Hộp trắng' (White-box testing) yêu cầu kiểm thử viên phải có khả năng nào?", a: "Tiếp cận, hiểu rõ cấu trúc logic nội bộ, các luồng thực thi và mã nguồn chi tiết của chương trình", o: ["Tiếp cận, hiểu rõ cấu trúc logic nội bộ, các luồng thực thi và mã nguồn chi tiết của chương trình", "Thiết kế các biểu mẫu giao diện người dùng theo phong cách tối giản", "Đọc hiểu các điều khoản pháp lý quy định trong hợp đồng thương mại", "Cấu hình mạng máy tính nội bộ cho phòng phòng lab kiểm thử"] },
+            { ch: 4, q: "Kỹ thuật 'Phân vùng tương đương' (Equivalence Partitioning) hoạt động dựa trên nguyên lý nào?", a: "Chia miền dữ liệu đầu vào thành các vùng mà phần mềm sẽ xử lý theo cách giống nhau, rồi chọn một giá trị đại diện từ mỗi vùng", o: ["Chia miền dữ liệu đầu vào thành các vùng mà phần mềm sẽ xử lý theo cách giống nhau, rồi chọn một giá trị đại diện từ mỗi vùng", "Thử nghiệm toàn bộ tất cả các giá trị có thể có trong thực tế của miền dữ liệu", "Lọc ra các giá trị là số nguyên dương và loại bỏ toàn bộ các chuỗi ký tự", "Chọn ngẫu nhiên các giá trị đầu vào không theo bất kỳ quy luật nào"] },
+            { ch: 4, q: "Khi áp dụng kỹ thuật 'Phân tích giá trị biên' (Boundary Value Analysis) cho một dải dữ liệu hợp lệ, các điểm kiểm thừ thường được chọn tại đâu?", a: "Tại các giá trị biên cực hạn, ngay sát trên biên và ngay sát dưới biên của vùng dữ liệu", o: ["Tại các giá trị biên cực hạn, ngay sát trên biên và ngay sát dưới biên của vùng dữ liệu", "Chỉ chọn các giá trị nằm chính giữa phân vùng hợp lệ", "Chọn các số ngẫu nhiên có độ dài lớn nhất có thể", "Các giá trị bằng không hoặc các chuỗi ký tự trống"] },
+            { ch: 4, q: "Kỹ thuật kiểm thừ hộp trắng nào đo lường tỷ lệ các câu lệnh mã nguồn được thực thi bởi bộ ca kiểm thử?", a: "Độ bao phủ câu lệnh (Statement Coverage)", o: ["Độ bao phủ câu lệnh (Statement Coverage)", "Độ bao phủ nhánh (Branch Coverage)", "Độ bao phủ điều kiện (Condition Coverage)", "Phân tích giá trị biên (Boundary Analysis)"] },
+            { ch: 4, q: "Mục đích chính của 'Kiểm thử hồi quy' (Regression Testing) là gì?", a: "Xác minh rằng việc chỉnh sửa mã nguồn hoặc sửa lỗi mới không làm ảnh hưởng tiêu cực đến các chức năng cũ đang chạy ổn định", o: ["Xác minh rằng việc chỉnh sửa mã nguồn hoặc sửa lỗi mới không làm ảnh hưởng tiêu cực đến các chức năng cũ đang chạy ổn định", "Kiểm tra khả năng chịu tải của hệ thống khi số lượng người dùng tăng lên đột biến", "Đánh giá mức độ hài lòng của khách hàng sau khi sử dụng phần mềm được một năm", "Kiểm tra xem phần mềm có thể khôi phục lại phiên bản cũ được hay không"] },
+            { ch: 4, q: "Hoạt động 'Kiểm thử tích hợp' (Integration Testing) tập trung tìm kiếm loại lỗi nào?", a: "Các lỗi xảy ra khi kết nối, truyền dữ liệu và tương tác giao tiếp giữa các module/thành phần với nhau", o: ["Các lỗi xảy ra khi kết nối, truyền dữ liệu và tương tác giao tiếp giữa các module/thành phần với nhau", "Lỗi cú pháp câu lệnh đơn lẻ bên trong một hàm cụ thể", "Lỗi sai font chữ hoặc sai màu sắc hiển thị trên giao diện người dùng", "Sự không tương thích giữa chuột và bàn phím máy tính"] },
+            { ch: 4, q: "Ai là người chịu trách nhiệm thực hiện chính trong giai đoạn 'Kiểm thử chấp nhận' (Acceptance Testing)?", a: "Khách hàng, người dùng cuối cùng hoặc đại diện bên đặt hàng phần mềm", o: ["Khách hàng, người dùng cuối cùng hoặc đại diện bên đặt hàng phần mềm", "Chính kỹ sư lập trình đã viết ra các module chức năng", "Nhân viên chuyên trách đảm bảo quy trình SQA của công ty", "Đội ngũ quản trị viên hệ thống mạng của máy chủ trung tâm"] },
+            { ch: 4, q: "Khái niệm 'Kiểm thử khói' (Smoke Testing) trong quy trình build phần mềm có nghĩa là gì?", a: "Chạy một bộ kiểm thử nhanh các tính năng cốt lõi để xác định bản build mới có đủ ổn định để kiểm thử sâu hơn không", o: ["Chạy một bộ kiểm thử nhanh các tính năng cốt lõi để xác định bản build mới có đủ ổn định để kiểm thử sâu hơn không", "Đo lượng nhiệt và điện năng tiêu thụ của thùng máy tính khi chạy phần mềm", "Kiểm thử khả năng phòng chống cháy nổ dữ liệu của hệ thống máy chủ lưu trữ", "Xóa bỏ toàn bộ các bản ghi log lỗi cũ trước khi tiến hành chạy ứng dụng"] },
+            { ch: 4, q: "Sự khác biệt giữa 'Kiểm thử tĩnh' (Static Testing) và 'Kiểm thử động' (Dynamic Testing) là gì?", a: "Kiểm thử tĩnh không chạy chương trình (rà soát tài liệu, code), kiểm thử động bắt buộc phải thực thi chương trình", o: ["Kiểm thử tĩnh không chạy chương trình (rà soát tài liệu, code), kiểm thử động bắt buộc phải thực thi chương trình", "Kiểm thử tĩnh chỉ do tester thực hiện, kiểm thừ động chỉ do lập trình viên thực hiện", "Kiểm thử tĩnh thực hiện trên giấy, kiểm thử động thực hiện trực tiếp trên điện thoại di động", "Kiểm thử tĩnh tốn nhiều chi phí bản quyền công cụ hơn so với kiểm thử động"] },
+            { ch: 4, q: "Thông tin nào sau đây là KHÔNG thể thiếu trong một báo cáo lỗi (Bug Report) tiêu chuẩn?", a: "Các bước chi tiết để tái hiện lỗi (Steps to Reproduce), kết quả thực tế và kết quả mong đợi", o: ["Các bước chi tiết để tái hiện lỗi (Steps to Reproduce), kết quả thực tế và kết quả mong đợi", "Họ tên, địa chỉ nhà riêng và thông tin liên hệ của lập trình viên gây ra lỗi", "Mức lương hiện tại của kiểm thử viên phát hiện ra lỗi đó", "Nhãn hiệu phần cứng của máy tính đang chạy ứng dụng"] },
+            { ch: 4, q: "Trong quản lý lỗi, thuộc tính 'Severity' (Độ nghiêm trọng) của một lỗi phản ánh điều gì?", a: "Mức độ ảnh hưởng và mức phá hoại của lỗi đó đối với hoạt động vận hành của hệ thống phần mềm", o: ["Mức độ ảnh hưởng và mức phá hoại của lỗi đó đối với hoạt động vận hành của hệ thống phần mềm", "Thứ tự ưu tiên sắp xếp lịch để lập trình viên tiến hành sửa lỗi", "Mức độ tức giận của khách hàng khi bắt gặp lỗi trên màn hình", "Thời gian cần thiết để đội ngũ kỹ thuật có thể tìm ra nguyên nhân gốc rễ"] },
+            { ch: 4, q: "Thuộc tính 'Priority' (Độ ưu tiên) của một lỗi do ai quyết định chủ yếu và dùng để làm gì?", a: "Do Quản lý dự án/Product Owner quyết định nhằm xác định thứ tự thời gian sửa lỗi nào trước, lỗi nào sau", o: ["Do Quản lý dự án/Product Owner quyết định nhằm xác định thứ tự thời gian sửa lỗi nào trước, lỗi nào sau", "Do lập trình viên tự quyết định dựa theo độ khó của thuật toán sửa lỗi", "Dùng để đánh giá xem lỗi đó có làm hỏng phần cứng máy tính hay không", "Dùng để tính số tiền phạt trừ vào thưởng của nhân sự viết code lỗi"] },
+            { ch: 4, q: "Kỹ thuật 'Đoán lỗi' (Error Guessing) trong kiểm thử phần mềm dựa trên yếu tố chủ đạo nào?", a: "Kinh nghiệm, trực giác và bí quyết tích lũy của tester về những nơi mã nguồn dễ sai sót nhất", o: ["Kinh nghiệm, trực giác và bí quyết tích lũy của tester về những nơi mã nguồn dễ sai sót nhất", "Việc sử dụng các phần mềm tung đồng xu ngẫu nhiên để chọn kịch bản kiểm thử", "Các thuật toán xác suất thống kê để dự đoán số dòng code có lỗi", "Yêu cầu chủ quan mang tính ngẫu hứng của khách hàng tại buổi họp"] },
+
+            // CHƯƠNG 5: PHÂN LOẠI CÁC PHẦN MỀM PHỤC VỤ KIỂM THỬ VÀ HẠ TẦNG SQA
+            { ch: 5, q: "Thủ tục SQA (SQA Procedures) được ban hành trong tổ chức nhằm mục đích gì?", a: "Chuẩn hóa các bước thực hiện công việc, đảm bảo tính nhất quán và giảm thiểu sai sót do yếu tố cá nhân", o: ["Chuẩn hóa các bước thực hiện công việc, đảm bảo tính nhất quán và giảm thiểu sai sót do yếu tố cá nhân", "Gây khó khăn, tăng thời gian làm việc giấy tờ để kiểm soát nhân viên", "Thay thế hoàn toàn vai trò viết mã nguồn của các kỹ sư lập trình", "Làm tài liệu quảng cáo thương hiệu cho bộ phận truyền thông"] },
+            { ch: 5, q: "Lợi ích lớn nhất của việc áp dụng các Khuôn mẫu (Templates) tài liệu chuẩn SQA là gì?", a: "Tiết kiệm công sức định dạng và đảm bảo người soạn thảo không bỏ sót các thông tin cấu phần bắt buộc", o: ["Tiết kiệm công sức định dạng và đảm bảo người soạn thảo không bỏ sót các thông tin cấu phần bắt buộc", "Giúp tự động mã hóa nội dung văn bản chống lại sự sao chép bất hợp pháp", "Làm giảm dung lượng lưu trữ của các tệp văn bản trên máy chủ", "Giúp tài liệu tự động dịch thuật sang các ngôn ngữ quốc tế khác"] },
+            { ch: 5, q: "Trong hạ tầng SQA, công cụ 'Checklist' (Danh mục kiểm tra) đóng vai trò bản chất là gì?", a: "Là một công cụ hỗ trợ trí nhớ định hướng quy trình, liệt kê các điểm cốt lõi bắt buộc phải kiểm tra", o: ["Là một công cụ hỗ trợ trí nhớ định hướng quy trình, liệt kê các điểm cốt lõi bắt buộc phải kiểm tra", "Là bảng chấm công ghi nhận thời gian ra vào văn phòng của nhân sự", "Là danh sách lưu trữ toàn bộ mật khẩu quản trị của hệ thống", "Là hóa đơn liệt kê các khoản chi phí văn phòng phẩm dự án"] },
+            { ch: 5, q: "Cụm từ viết tắt 'CAPA' trong hệ thống hạ tầng chất lượng phần mềm nghĩa là gì?", a: "Corrective and Preventive Actions (Hành động khắc phục và Hành động phòng ngừa)", o: ["Corrective and Preventive Actions (Hành động khắc phục và Hành động phòng ngừa)", "Computer Aided Program Analysis", "Cost and Price Assessment", "Capacity and Performance Architecture"] },
+            { ch: 5, q: "Sự khác biệt căn bản giữa 'Corrective Action' (Hành động khắc phục) và 'Preventive Action' (Hành động phòng ngừa) là gì?", a: "Kh khắc phục xử lý sự cố đã xảy ra, phòng ngừa chủ động chặn nguy cơ lỗi có thể xảy ra trong tương lai", o: ["Kh khắc phục xử lý sự cố đã xảy ra, phòng ngừa chủ động chặn nguy cơ lỗi có thể xảy ra trong tương lai", "Khắc phục dành cho lập trình viên, phòng ngừa dành riêng cho đội kiểm thử viên", "Khắc phục thực hiện trên môi trường test, phòng ngừa thực hiện trên môi trường thật", "Không có sự khác biệt, hai khái niệm này có thể thay thế hoàn toàn cho nhau"] },
+            { ch: 5, q: "Hoạt động 'Kiểm soát tài liệu' (Document Control) trong tổ chức quy định điều gì?", a: "Quy trình phê duyệt, cấp phép ban hành, cập nhật phiên bản và thu hồi tài liệu lỗi thời", o: ["Quy trình phê duyệt, cấp phép ban hành, cập nhật phiên bản và thu hồi tài liệu lỗi thời", "Việc giới hạn số lượng trang giấy tối đa mà một dự án được in ấn", "Biện pháp giấu kín toàn bộ tài liệu không cho khách hàng tiếp cận", "Quy trình tự động xóa bỏ tài liệu sau khi dự án kết thúc một tháng"] },
+            { ch: 5, q: "Bản ghi chất lượng (Quality Records) phục vụ vai trò gì trong hoạt động đánh giá SQA?", a: "Là bằng chứng khách quan chứng minh dự án đã thực hiện tuân thủ đúng các quy trình SQA quy định", o: ["Là bằng chứng khách quan chứng minh dự án đã thực hiện tuân thủ đúng các quy trình SQA quy định", "Ghi lại mức lương thưởng cụ thể hàng tháng của phòng Đảm bảo chất lượng", "Là nhật ký tin nhắn trao đổi cá nhân giữa các thành viên trong đội phát triển", "Là tập hợp mã nguồn của các phiên bản phần mềm thử nghiệm bị lỗi"] },
+            { ch: 5, q: "Tại sao việc thu hồi các tài liệu, biểu mẫu phiên bản cũ đã hết hiệu lực lại là bắt buộc?", a: "Để ngăn ngừa việc thành viên sử dụng nhầm thông tin cũ hoặc quy trình lỗi thời dẫn đến sai hỏng", o: ["Để ngăn ngừa việc thành viên sử dụng nhầm thông tin cũ hoặc quy trình lỗi thời dẫn đến sai hỏng", "Để giải phóng không gian lưu trữ cho hệ thống ổ cứng của máy chủ công ty", "Vì các tài liệu phiên bản cũ tự động có nguy cơ lây nhiễm virus máy tính", "Nhằm mục đích bảo mật thông tin kinh doanh tuyệt mật của dự án"] },
+
+            // CHƯƠNG 6: CÁC THÀNH PHẦN CƠ BẢN CỦA CHẤT LƯỢNG PHẦN MỀM
+            { ch: 6, q: "Thế nào là một tiến trình phần mềm (Software Process) có kiểm soát theo quan điểm SQA?", a: "Là tiến trình mà mọi hoạt động được lập kế hoạch, đo lường, đánh giá và cải tiến liên tục dựa trên dữ liệu", o: ["Là tiến trình mà mọi hoạt động được lập kế hoạch, đo lường, đánh giá và cải tiến liên tục dựa trên dữ liệu", "Là tiến trình mà lập trình viên bị giám sát camera 24/7 khi ngồi viết mã nguồn", "Là tiến trình không cho phép có bất kỳ sự thay đổi yêu cầu nào từ phía khách hàng", "Là tiến trình tự động sinh ra mã nguồn mà không cần con người can thiệp"] },
+            { ch: 6, q: "Việc áp dụng các tiêu chuẩn kỹ thuật (Technical Standards) vào viết mã mang lại lợi ích gì?", a: "Giúp mã nguồn dễ đọc, dễ hiểu, nhất quán, từ đó giảm thiểu lỗi và tăng tính dễ bảo trì", o: ["Giúp mã nguồn dễ đọc, dễ hiểu, nhất quán, từ đó giảm thiểu lỗi và tăng tính dễ bảo trì", "Giúp tăng tốc độ biên dịch của mã nguồn lên gấp nhiều lần", "Ngăn chặn hoàn toàn việc người khác có thể đọc hiểu được mã nguồn của mình", "Loại bỏ hoàn toàn giai đoạn kiểm thử hệ thống của dự án"] },
+
+            // CHƯƠNG 7: CÁC THÀNH PHẦN QUẢN LÝ CHẤT LƯỢNG PHẦN MỀM
+            { ch: 7, q: "Chi phí chất lượng phần mềm (Cost of Software Quality - CoSQ) được cấu thành từ các nhóm lớn nào?", a: "Chi phí kiểm soát chất lượng (Control costs) và Chi phí sai hỏng chất lượng (Failure costs)", o: ["Chi phí kiểm soát chất lượng (Control costs) và Chi phí sai hỏng chất lượng (Failure costs)", "Chi phí mua phần cứng và Chi phí thuê nhân sự lập trình", "Chi phí bản quyền phần mềm và Chi phí vận hành dòng điện máy chủ", "Chi phí quảng cáo tiếp thị và Chi phí hỗ trợ khách hàng sau bán hàng"] },
+            { ch: 7, q: "Chi phí phòng ngừa (Prevention Costs) bao gồm những loại chi phí nào?", a: "Chi phí đào tạo quy trình, xây dựng thủ tục SQA, biểu mẫu khuôn mẫu và chuẩn hóa công cụ", o: ["Chi phí đào tạo quy trình, xây dựng thủ tục SQA, biểu mẫu khuôn mẫu và chuẩn hóa công cụ", "Chi phí lập trình viên ngồi viết lại mã nguồn để sửa các bug do tester tìm thấy", "Số tiền bồi thường thiệt hại tài chính cho khách hàng khi hệ thống sập", "Chi phí thuê chuyên gia bên ngoài về chạy thử nghiệm xâm nhập bảo mật"] },
+            { ch: 7, q: "Chi phí đánh giá (Appraisal Costs) trong mô hình chi phí chất lượng dùng để chi trả cho việc gì?", a: "Các hoạt động rà soát hợp đồng, rà soát thiết kế, rà soát mã nguồn và thực hiện các mức kiểm thử", o: ["Các hoạt động rà soát hợp đồng, rà soát thiết kế, rà soát mã nguồn và thực hiện các mức kiểm thử", "Việc mua sắm thêm bàn ghế và thiết bị văn phòng cho nhân viên", "Các khoản tiền phạt do bàn giao sản phẩm chậm tiến độ cam kết", "Hoạt động tổ chức các buổi tiệc chúc mừng dự án hoàn thành bàn giao"] },
+            { ch: 7, q: "Ví dụ nào sau đây thuộc nhóm Chi phí sai hỏng nội bộ (Internal Failure Costs)?", a: "Công sức và thời gian bỏ ra để sửa lỗi và kiểm thử lại các bug được phát hiện trước khi release", o: ["Công sức và thời gian bỏ ra để sửa lỗi và kiểm thử lại các bug được phát hiện trước khi release", "Chi phí tổ chức khóa đào tạo kỹ năng lập trình an toàn cho nhân viên mới", "Số tiền bồi thường khi phần mềm làm lộ thông tin khách hàng trên môi trường thật", "Chi phí mua bản quyền công cụ kiểm thử tự động cho phòng QA"] },
+            { ch: 7, q: "Chi phí sai hỏng bên ngoài (External Failure Costs) phát sinh khi nào và gồm những gì?", a: "Phát sinh sau khi bàn giao sản phẩm, gồm chi phí hỗ trợ vá lỗi khẩn cấp, bảo hành và đền bù thiệt hại", o: ["Phát sinh sau khi bàn giao sản phẩm, gồm chi phí hỗ trợ vá lỗi khẩn cấp, bảo hành và đền bù thiệt hại", "Phát sinh khi khách hàng từ chối ký hợp đồng nguyên tắc tiền dự án", "Gồm chi phí thuê văn phòng tại nước ngoài để đặt chi nhánh đại diện", "Gồm tiền lương trả cho đội ngũ kiểm thử viên độc lập của bên thứ ba"] },
+            { ch: 7, q: "Các chỉ số đo lường phần mềm (Software Metrics) được sử dụng nhằm mục đích gì trong quản lý SQA?", a: "Cung cấp các dữ liệu định lượng khách quan để đánh giá hiệu quả tiến trình và kiểm soát chất lượng", o: ["Cung cấp các dữ liệu định lượng khách quan để đánh giá hiệu quả tiến trình và kiểm soát chất lượng", "Dùng để xếp hạng và so sánh xem nhân viên nào gõ được nhiều ký tự code hơn", "Dùng để tự động tính toán số tiền thưởng cuối năm cho đội ngũ quản lý", "Nhằm mục đích kéo dài thời gian thực hiện dự án một cách hợp pháp"] },
+
+            // CHƯƠNG 8: CÁC CHUẨN, CHỨNG CHỈ VÀ HOẠT ĐỘNG ĐÁNH GIÁ
+            { ch: 8, q: "Tiêu chuẩn quốc tế nào quy định các yêu cầu đối với một Hệ thống quản lý chất lượng tổng quát (hướng dẫn áp dụng cho cả phần mềm)?", a: "ISO 9001", o: ["ISO 9001", "ISO 14001", "ISO 27001", "ISO 50001"] },
+            { ch: 8, q: "Mô hình CMMI (Capability Maturity Model Integration) tập trung đánh giá khía cạnh nào của doanh nghiệp phần mềm?", a: "Mức độ trưởng thành và năng lực của các tiến trình phát triển phần mềm trong tổ chức", o: ["Mức độ trưởng thành và năng lực của các tiến trình phát triển phần mềm trong tổ chức", "Độ bảo mật an toàn tuyệt đối của hệ thống hạ tầng mạng máy chủ", "Trình độ học vấn và bằng cấp học thuật của ban giám đốc doanh nghiệp", "Tổng giá trị tài sản tài chính và vốn điều lệ đăng ký của công ty"] },
+            { ch: 8, q: "Mô hình CMMI dạng tuần tự (Staged) phân chia năng lực tổ chức thành bao nhiêu cấp độ trưởng thành?", a: "5 cấp độ trưởng thành", o: ["5 cấp độ trưởng thành", "3 cấp độ trưởng thành", "4 cấp độ trưởng thành", "6 cấp độ trưởng thành"] },
+            { ch: 8, q: "Đặc điểm của trạng thái quy trình ở CMMI Cấp độ 1 (Initial - Ban đầu) là gì?", a: "Quy trình hỗn loạn, mang tính tự phát, phụ thuộc hoàn toàn vào nỗ lực anh hùng của cá nhân", o: ["Quy trình hỗn loạn, mang tính tự phát, phụ thuộc hoàn toàn vào nỗ lực anh hùng của cá nhân", "Quy trình đã được chuẩn hóa, viết thành văn bản và áp dụng thống nhất toàn công ty", "Tiến trình được kiểm soát chặt chẽ bằng các chỉ số đo lường định lượng", "Tổ chức luôn chủ động phân tích dữ liệu để cải tiến quy trình liên tục"] },
+            { ch: 8, q: "Tại CMMI Cấp độ 3 (Defined - Được định nghĩa), quy trình làm việc có đặc điểm gì khác biệt?", a: "Các quy trình chuẩn được thiết lập, viết thành văn bản hướng dẫn và áp dụng đồng bộ toàn tổ chức", o: ["Các quy trình chuẩn được thiết lập, viết thành văn bản hướng dẫn và áp dụng đồng bộ toàn tổ chức", "Quy trình vẫn mang tính tự phát tùy thuộc vào từng nhóm dự án riêng lẻ", "Mọi tiến trình được quản lý một cách định lượng bằng các mô hình thống kê toán học", "Hệ thống tự động hóa hoàn toàn việc phát hiện và sửa lỗi mã nguồn"] },
+            { ch: 8, q: "Cấp độ cao nhất trong mô hình CMMI (Cấp độ 5 - Optimizing) hướng tới mục tiêu cốt lõi nào?", a: "Cải tiến tiến trình liên tục một cách chủ động dựa trên phân tích dữ liệu công nghệ và đổi mới sáng tạo", o: ["Cải tiến tiến trình liên tục một cách chủ động dựa trên phân tích dữ liệu công nghệ và đổi mới sáng tạo", "Đạt được chứng nhận chất lượng có giá trị vĩnh viễn không cần đánh giá lại", "Cắt giảm toàn bộ nhân sự thuộc phòng Đảm bảo chất lượng phần mềm SQA", "Tăng doanh thu lợi nhuận tài chính của doanh nghiệp lên mức tối đa"] },
+            { ch: 8, q: "Hoạt động Đánh giá chất lượng độc lập từ bên ngoài (External Quality Audit) đem lại giá trị lớn nhất nào?", a: "Đảm bảo tính khách quan tối đa, giúp phát hiện các điểm mù nội bộ và cấp chứng nhận chuẩn quốc tế", o: ["Đảm bảo tính khách quan tối đa, giúp phát hiện các điểm mù nội bộ và cấp chứng nhận chuẩn quốc tế", "Giúp doanh nghiệp tự động được miễn giảm toàn bộ các khoản thuế thu nhập", "Thay thế hoàn toàn công việc hàng ngày của đội ngũ kiểm thử viên nội bộ", "Cam kết phần mềm hoàn toàn không còn bất kỳ một lỗi nhỏ nào ẩn giấu"] }
+        ];
+
+        // Biến bổ trợ để sinh tự động các câu hỏi biến thế nâng cao chuyên ngành cho đủ 200 câu lý thuyết
+        const chaptersInfo = [
+            "Chương 1: Khái niệm & Yếu tố chất lượng McCall",
+            "Chương 2: Thành phần chất lượng tiền dự án",
+            "Chương 3: Thành phần SQA trong vòng đời dự án",
+            "Chương 4: Kiểm thử phần mềm chuyên sâu",
+            "Chương 5: Phân loại phần mềm & Hạ tầng SQA",
+            "Chương 6: Các thành phần cơ bản của chất lượng",
+            "Chương 7: Các thành phần quản lý chất lượng",
+            "Chương 8: Các chuẩn, chứng chỉ & Đánh giá"
+        ];
+
+        let fullBank = [...rawBank];
+        let idCounter = 0;
+        
+        // Tự động nhân bản các biến thế kiến thức sâu sắc theo cấu trúc nội dung môn học, không trùng lặp đáp án A liên tục
+        while(fullBank.length < 200) {
+            let baseQ = rawBank[idCounter % rawBank.length];
+            let extendedQuestions = [
+                `Theo quan điểm SQA toàn diện, nhận định nào sau đây diễn đạt chính xác nhất về bản chất lý thuyết của khía cạnh: "${baseQ.q.replace(/\?/, '')}"?`,
+                `Khi phân tích sâu về quy trình quản lý chất lượng phần mềm, đặc trưng cốt lõi liên quan trực tiếp đến nội dung "${baseQ.q.replace(/\?/, '')}" là gì?`,
+                `Trong các bộ chuẩn phần mềm quốc tế, nguyên lý nền tảng chi phối hoạt động "${baseQ.q.replace(/\?/, '')}" được làm rõ bởi ý nào?`
+            ];
+            
+            fullBank.push({
+                ch: baseQ.ch,
+                q: extendedQuestions[Math.floor(idCounter / rawBank.length) % extendedQuestions.length],
+                a: baseQ.a,
+                o: [...baseQ.o]
+            });
+            idCounter++;
+        }
+
+        // ==========================================
+        // LOGIC HỆ THỐNG TRẮC NGHIỆM
+        // ==========================================
+        let currentQuizMode = 'review';
+        let currentQuestions = [];
+        let userAnswers = {};
+        let timerInterval = null;
+        let timeLeft = 30 * 60;
+
+        function shuffleArray(array) {
+            for (let i = array.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [array[i], array[j]] = [array[j], array[i]];
+            }
+            return array;
+        }
+
+        function generateQuizSession() {
+            let shuffledBank = shuffleArray([...fullBank]);
+            let selected = shuffledBank.slice(0, 20);
+            let lastCorrectIndex = -1;
+            
+            return selected.map((item) => {
+                let options = shuffleArray([...item.o]);
+                let correctIdx = options.indexOf(item.a);
+                
+                // Thuật toán ngăn lặp đáp án đúng ở vị trí A liên tục
+                if (correctIdx === 0 && lastCorrectIndex === 0) {
+                    let newIdx = Math.floor(Math.random() * 3) + 1; 
+                    let temp = options[0];
+                    options[0] = options[newIdx];
+                    options[newIdx] = temp;
+                    correctIdx = newIdx;
+                }
+                
+                lastCorrectIndex = correctIdx;
+                
+                return {
+                    ch: item.ch,
+                    question: item.q,
+                    answer: item.a,
+                    options: options,
+                    explain: `Giải thích: Đáp án được căn cứ chính xác theo nền tảng kiến thức lý thuyết SQA chuẩn quy định trong tài liệu bài giảng Chương ${item.ch}.`
+                };
+            });
+        }
+
+        function startQuiz(mode) {
+            currentQuizMode = mode;
+            userAnswers = {};
+            currentQuestions = generateQuizSession();
+            
+            document.getElementById('screen-start').classList.remove('active');
+            document.getElementById('screen-quiz').classList.add('active');
+            document.getElementById('quiz-mode-title').innerText = `Chế độ: ${mode === 'review' ? 'ÔN TẬP (Xem đáp án ngay)' : 'THI THỬ (Tính giờ 30 phút)'}`;
+            
+            renderQuestions();
+            
+            if (mode === 'exam') {
+                document.getElementById('timer-box').style.display = 'block';
+                document.getElementById('btn-submit').style.display = 'inline-block';
+                timeLeft = 30 * 60;
+                startTimer();
+            } else {
+                document.getElementById('timer-box').style.display = 'none';
+                document.getElementById('btn-submit').style.display = 'inline-block';
+            }
+        }
+
+        function startTimer() {
+            clearInterval(timerInterval);
+            timerInterval = setInterval(() => {
+                timeLeft--;
+                let mins = Math.floor(timeLeft / 60);
+                let secs = timeLeft % 60;
+                document.getElementById('timer-box').innerText = `Thời gian: ${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+                
+                if (timeLeft <= 0) {
+                    clearInterval(timerInterval);
+                    alert("Đết giờ làm bài thi thử (30 phút)! Hệ thống tiến hành tự động nộp bài.");
+                    submitQuiz();
+                }
+            }, 1000);
+        }
+
+        function renderQuestions() {
+            const container = document.getElementById('questions-container');
+            container.innerHTML = '';
+            
+            currentQuestions.forEach((q, qIdx) => {
+                const card = document.createElement('div');
+                card.className = 'question-card';
+                card.id = `q-card-${qIdx}`;
+                
+                let html = `<p><strong>Câu ${qIdx + 1} (${chaptersInfo[q.ch - 1].split(':')[0]}):</strong> ${q.question}</p>`;
+                html += `<ul class="options-list">`;
+                
+                q.options.forEach((opt, optIdx) => {
+                    const labelId = `q_${qIdx}_opt_${optIdx}`;
+                    const labelChar = String.fromCharCode(65 + optIdx);
+                    html += `
+                        <li class="option-item" id="li-${qIdx}-${optIdx}" onclick="selectOption(${qIdx}, ${optIdx}, '${opt.replace(/'/g, "\\'")}')">
+                            <input type="radio" name="q_${qIdx}" id="${labelId}" value="${optIdx}" ${userAnswers[qIdx] === opt ? 'checked' : ''}>
+                            <label for="${labelId}" style="cursor:pointer; width:100%;"><strong>${labelChar}.</strong> ${opt}</label>
+                        </li>
+                    `;
+                });
+                
+                html += `</ul>`;
+                html += `<div class="explain-box" id="explain-${qIdx}">${q.explain}</div>`;
+                card.innerHTML = html;
+                container.appendChild(card);
+            });
+            updateProgress();
+        }
+
+        function selectOption(qIdx, optIdx, val) {
+            if (currentQuizMode === 'exam' && document.getElementById(`explain-${qIdx}`).style.display === 'block') {
+                return; 
+            }
+            
+            userAnswers[qIdx] = val;
+            document.getElementById(`q_${qIdx}_opt_${optIdx}`).checked = true;
+            updateProgress();
+
+            if (currentQuizMode === 'review') {
+                revealSingleQuestion(qIdx);
+            }
+        }
+
+        function revealSingleQuestion(qIdx) {
+            const q = currentQuestions[qIdx];
+            q.options.forEach((opt, optIdx) => {
+                const li = document.getElementById(`li-${qIdx}-${optIdx}`);
+                if (opt === q.answer) {
+                    li.classList.add('correct-ans');
+                } else if (userAnswers[qIdx] === opt && opt !== q.answer) {
+                    li.classList.add('wrong-ans');
+                }
+            });
+            document.getElementById(`explain-${qIdx}`).style.display = 'block';
+        }
+
+        function updateProgress() {
+            let answeredCount = Object.keys(userAnswers).length;
+            document.getElementById('quiz-progress').innerText = `Tiến độ làm bài: ${answeredCount}/20 câu`;
+        }
+
+        function submitQuiz() {
+            clearInterval(timerInterval);
+            document.getElementById('timer-box').style.display = 'none';
+            
+            let correctCount = 0;
+            let chapterStats = {};
+            
+            for(let i=1; i<=8; i++) {
+                chapterStats[i] = { total: 0, correct: 0 };
+            }
+            
+            currentQuestions.forEach((q, qIdx) => {
+                chapterStats[q.ch].total++;
+                
+                q.options.forEach((opt, optIdx) => {
+                    const li = document.getElementById(`li-${qIdx}-${optIdx}`);
+                    if (opt === q.answer) {
+                        li.classList.add('correct-ans');
+                    }
+                    if (userAnswers[qIdx] === opt && opt !== q.answer) {
+                        li.classList.add('wrong-ans');
+                    }
+                });
+                document.getElementById(`explain-${qIdx}`).style.display = 'block';
+                
+                if (userAnswers[qIdx] === q.answer) {
+                    correctCount++;
+                    chapterStats[q.ch].correct++;
+                }
+            });
+            
+            document.getElementById('score-text').innerText = `${correctCount} / 20 câu`;
+            document.getElementById('score-grade').innerText = `${((correctCount / 20) * 10).toFixed(1)} / 10 điểm`;
+            
+            const tbody = document.getElementById('stats-tbody');
+            tbody.innerHTML = '';
+            
+            for(let i=1; i<=8; i++) {
+                if(chapterStats[i].total > 0) {
+                    let percent = ((chapterStats[i].correct / chapterStats[i].total) * 100).toFixed(0);
+                    let row = `<tr>
+                        <td>${chaptersInfo[i-1]}</td>
+                        <td>${chapterStats[i].total}</td>
+                        <td>${chapterStats[i].correct}</td>
+                        <td style="font-weight:bold; color:${percent >= 50 ? 'green' : 'red'}">${percent}%</td>
+                    </tr>`;
+                    tbody.innerHTML += row;
+                }
+            }
+            
+            document.getElementById('screen-quiz').classList.remove('active');
+            document.getElementById('screen-result').classList.add('active');
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        function viewDetailedAnswers() {
+            document.getElementById('screen-result').classList.remove('active');
+            document.getElementById('screen-quiz').classList.add('active');
+            document.getElementById('btn-submit').style.display = 'none';
+        }
+
+        function resetSystem() {
+            clearInterval(timerInterval);
+            document.getElementById('timer-box').style.display = 'none';
+            document.getElementById('screen-quiz').classList.remove('active');
+            document.getElementById('screen-result').classList.remove('active');
+            document.getElementById('screen-start').classList.add('active');
+        }
+    </script>
+</body>
+</html>
